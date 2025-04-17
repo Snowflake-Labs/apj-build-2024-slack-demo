@@ -24,8 +24,14 @@ from log.logger import get_logger as logger
 logger = logger("demo_mate_bot")
 
 try:
-    session = Session.builder.config(
-        "connection_name", os.getenv("SNOWFLAKE_CONNECTION_NAME", "trial-key")
+    session = Session.builder.configs(
+        {
+            "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+            "user": os.getenv("SNOWFLAKE_USER"),
+            "authenticator": "SNOWFLAKE_JWT",
+            "private_key_file": os.getenv("PRIVATE_KEY_FILE_PATH"),
+            "private_key_file_pwd": os.getenv("PRIVATE_KEY_PASSPHRASE"),
+        }
     ).create()
     logger.debug(
         f"Account:{session.conf.get('account')},User:{session.conf.get('user')}"
@@ -80,7 +86,7 @@ def do_setup(
     try:
         client.chat_postMessage(
             channel=channel_id,
-            text=f"Wait for few seconds for the setup to be done :hourglass_flowing_sand:",
+            text="Wait for few seconds for the setup to be done :hourglass_flowing_sand:",
         )
 
         global db_setup
@@ -255,7 +261,7 @@ def cleanup_handler(ack, client, command, respond):
     # Send the response with wait message
     client.chat_postMessage(
         channel=channel_id,
-        text=f"Wait for few seconds for the cleanup to be done :hourglass_flowing_sand:",
+        text="Wait for few seconds for the cleanup to be done :hourglass_flowing_sand:",
     )
     db_name = command.get("text", "").strip()
     logger.debug(f"command_text:{db_name}")
@@ -308,7 +314,7 @@ def handle_cortalyst(ack, client: WebClient, say, command, respond, logger):
         command_text = command.get("text", "").strip()
         if not command_text:
             try:
-                logger.debug(f"No question asking user")
+                logger.debug("No question asking user")
                 # Send the response with input block
                 respond(
                     blocks=blocks.cortex_question,
@@ -430,12 +436,12 @@ def ask_cortex_analyst(channel_id: str, client: WebClient, say, logger, question
 
         client.chat_postMessage(
             channel=channel_id,
-            text=f":hourglass_flowing_sand: Wait for a few seconds... while I ask the Cortex Analyst :robot_face:",
+            text=":hourglass_flowing_sand: Wait for a few seconds... while I ask the Cortex Analyst :robot_face:",
         )
 
         if os.getenv("PRIVATE_KEY_FILE_PATH") is None:
             raise Exception(
-                f"Require PRIVATE_KEY_FILE_PATH to be set. Consult Snowflake documentation https://docs.snowflake.com/user-guide/key-pair-auth#configuring-key-pair-authentication."
+                "Require PRIVATE_KEY_FILE_PATH to be set. Consult Snowflake documentation https://docs.snowflake.com/user-guide/key-pair-auth#configuring-key-pair-authentication."
             )
 
         cortalyst = Cortlayst(
@@ -443,6 +449,8 @@ def ask_cortex_analyst(channel_id: str, client: WebClient, say, logger, question
             user=session.conf.get("user"),
             host=session.conf.get("host"),
             private_key_file_path=os.getenv("PRIVATE_KEY_FILE_PATH"),
+            database=db_setup.db_name,
+            schema=db_setup.schema_name,
         )
 
         ans = cortalyst.answer(question)
@@ -487,7 +495,7 @@ def show_response(client: WebClient, channel_id, content: List[Dict[str, Any]], 
             match item["type"]:
                 case "sql":
                     # Send raw generated query for reference
-                    logger.debug(f"Generating text block with generated SQL")
+                    logger.debug("Generating text block with generated SQL")
                     query = item["statement"]
                     say(
                         blocks=blocks.create_sql_block(query),
@@ -495,7 +503,7 @@ def show_response(client: WebClient, channel_id, content: List[Dict[str, Any]], 
                     )
 
                     # Build and Display Dataframe for Query Results
-                    logger.debug(f"Building query result")
+                    logger.debug("Building query result")
                     df = session.sql(query).to_pandas()
                     say(
                         blocks=blocks.create_df_block(df),
