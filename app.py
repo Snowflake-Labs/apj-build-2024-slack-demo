@@ -4,8 +4,8 @@
 import io
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, Dict, List
 
 # Third-party imports
@@ -21,12 +21,11 @@ from handler_tasks.cortalyst import Cortlayst
 from handler_tasks.db_setup import DBSetup
 from log.logger import get_logger as logger
 
-
 logger = logger("demo_mate_bot")
 
 try:
     session = Session.builder.config(
-        "connection_name", os.getenv("SNOWFLAKE_CONNECTION_NAME", "default")
+        "connection_name", os.getenv("SNOWFLAKE_CONNECTION_NAME", "trial-key")
     ).create()
     logger.debug(
         f"Account:{session.conf.get('account')},User:{session.conf.get('user')}"
@@ -48,7 +47,7 @@ if os.path.exists(".dbinfo"):
         db_setup.db_name = db_info["db_name"]
         db_setup.schema_name = db_info["schema_name"]
         logger.debug(
-            f"App will use DB: '{db_setup.db_name}' and Schema: '{ db_setup.schema_name}'"
+            f"App will use DB: '{db_setup.db_name}' and Schema: '{db_setup.schema_name}'"
         )
 
 
